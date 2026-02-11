@@ -1,0 +1,29 @@
+{
+  "name": "fin-track-core",
+  "version": "1.0.0",
+  "description": "A robust and scalable backend system for personal finance management, focusing on data integrity and clean architecture.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kangnova/fin-track-core.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kangnova/fin-track-core/issues"
+  },
+  "homepage": "https://github.com/kangnova/fin-track-core#readme",
+  "dependencies": {
+    "@prisma/client": "^7.3.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "prisma": "^7.3.0"
+  }
+}
