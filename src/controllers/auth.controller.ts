@@ -1,42 +1,64 @@
 
 import { Request, Response } from 'express';
-import { successResponse } from '../utils/response';
+import * as authService from '../services/auth.service';
+import { registerSchema, loginSchema } from '../utils/dto';
+import { successResponse, errorResponse } from '../utils/response';
 
 export const register = async (req: Request, res: Response) => {
     try {
-        // TODO: Implement registration logic
-        successResponse(res, { user: 'test' }, 'User registered successfully');
+        const validation = registerSchema.safeParse(req.body);
+
+        if (!validation.success) {
+            return errorResponse(res, validation.error.message, 400);
+        }
+
+        const result = await authService.registerUser(validation.data);
+        successResponse(res, result, 'User registered successfully');
     } catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            const statusCode = error.message === 'User already exists' ? 409 : 500;
+            errorResponse(res, error.message, statusCode);
         } else {
-            res.status(500).json({ message: 'An unknown error occurred' });
+            errorResponse(res, 'An unknown error occurred');
         }
     }
 };
 
 export const login = async (req: Request, res: Response) => {
     try {
-        // TODO: Implement login logic
-        successResponse(res, { token: 'jwt_token' }, 'Login successful');
+        const validation = loginSchema.safeParse(req.body);
+
+        if (!validation.success) {
+            return errorResponse(res, validation.error.message, 400);
+        }
+
+        const result = await authService.loginUser(validation.data);
+        successResponse(res, result, 'Login successful');
     } catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            const statusCode = error.message === 'Invalid email or password' ? 401 : 500;
+            errorResponse(res, error.message, statusCode);
         } else {
-            res.status(500).json({ message: 'An unknown error occurred' });
+            errorResponse(res, 'An unknown error occurred');
         }
     }
 };
 
 export const getProfile = async (req: Request, res: Response) => {
     try {
-        // TODO: Implement get profile logic
-        successResponse(res, { user: 'profile' }, 'Profile retrieved successfully');
+        const userId = (req as AuthRequest).user?.userId;
+
+        if (!userId) {
+            return errorResponse(res, 'Unauthorized', 401);
+        }
+
+        const user = await authService.getUserProfile(userId);
+        successResponse(res, user, 'Profile retrieved successfully');
     } catch (error) {
         if (error instanceof Error) {
-            res.status(500).json({ message: error.message });
+            errorResponse(res, error.message, 404);
         } else {
-            res.status(500).json({ message: 'An unknown error occurred' });
+            errorResponse(res, 'Failed to retrieve profile');
         }
     }
 }
