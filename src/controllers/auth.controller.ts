@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 import { registerSchema, loginSchema } from '../utils/dto';
 import { successResponse, errorResponse } from '../utils/response';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 export const register = async (req: Request, res: Response) => {
     try {
