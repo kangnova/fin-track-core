@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack Core API Tester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        button { cursor: pointer; padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>FinTrack Core API Tester</h1>
+    
+    <div class="card">
+        <h2>1. Register & Login</h2>
+        <button onclick="testAuth()">Test Auth</button>
+        <div id="authResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Dashboard Summary</h2>
+        <button onclick="getSummary()" id="btnSummary" disabled>Get Summary</button>
+        <div id="summaryResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Create Transaction</h2>
+        <button onclick="createTransaction()" id="btnTrans" disabled>Add Random Transaction</button>
+        <div id="transResult"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:3000/api';
+        let token = '';
+
+        async function testAuth() {
+            const resultDiv = document.getElementById('authResult');
+            resultDiv.innerHTML = 'Running...';
+            
+            try {
+                const timestamp = Date.now();
+                const email = `user${timestamp}@example.com`;
+                
+                // Register
+                await fetch(`${BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: 'password123', name: 'Browser User' })
+                });
+
+                // Login
+                const res = await fetch(`${BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: 'password123' })
+                });
+
+                const data = await res.json();
+                if (data.data && data.data.token) {
+                    token = data.data.token;
+                    resultDiv.innerHTML = `<p class="success">Login Successful! Token received.</p>`;
+                    document.getElementById('btnSummary').disabled = false;
+                    document.getElementById('btnTrans').disabled = false;
+                    
+                    // Auto-create verification categories if needed
+                    await createCategory('Salary', 'INCOME');
+                    await createCategory('Food', 'EXPENSE');
+                } else {
+                    throw new Error(data.message || 'Login failed');
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function createCategory(name, type) {
+            try {
+                await fetch(`${BASE_URL}/categories`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function getSummary() {
+            const resultDiv = document.getElementById('summaryResult');
+            resultDiv.innerHTML = 'Loading...';
+            try {
+                const res = await fetch(`${BASE_URL}/dashboard/summary`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function createTransaction() {
+            const resultDiv = document.getElementById('transResult');
+            resultDiv.innerHTML = 'Creating...';
+            try {
+                // Get categories first to find an id
+                const catRes = await fetch(`${BASE_URL}/categories`, {
+                     headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const categories = (await catRes.json()).data;
+                if (!categories.length) throw new Error('No categories found');
+
+                const randomCat = categories[Math.floor(Math.random() * categories.length)];
+                
+                const res = await fetch(`${BASE_URL}/transactions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        categoryId: randomCat.id,
+                        amount: Math.floor(Math.random() * 100000),
+                        note: 'Test transaction from browser',
+                        date: new Date().toISOString()
+                    })
+                });
+                const data = await res.json();
+                resultDiv.innerHTML = `<p class="success">Transaction Created!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Refresh summary
+                getSummary();
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
